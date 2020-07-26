@@ -11,7 +11,8 @@
 #define AP_SEVER "IoTVision_O1V_1.0"         //todo: CHANGE!
 #define AP_PASSWORD "shl12345"
 #define POST_URL "http://JSON.IoTVision.vn/api/BoGaNhaYen_DuLieu"
-#define GET_URL "http://JSON.IoTVision.vn/api/BoGaNhaYenHienThiOnline?MatKhau=nhayen"
+#define GET_URL "http://JSON.IoTVision.vn/api/BoGaNhaYenHi enThiOnline?MatKhau=nhayen"
+#define FACTORY_URL ""
 #define Object1 "MaBoGa"
 #define Object2 "DongDien"
 #define Object3 "SoLanQuaTai"
@@ -100,13 +101,48 @@ void ThongSoInit(){
 }
 HTTPClient http;
 WiFiManager wm;
+//********************************************Doan GETJSON Factory *****************************************
+//http.begin("http://json.IoTVision.vn/api/BoGaNhaYen_CaiDatThongSoBoard");
+//http.GET();
+//Serial.println(http.getString());
+//http.end();
+//delay(1000);
+//**********************************************************************************************************
+char FactoryID[] = "IoTVision";
+JSONVar getJSON(String _URL){
+  http.begin(_URL);
+  int httpCodePost = http.GET();
+  if(DB) Serial.printf("httpCodePost: %i\r\n", httpCodePost);
+  if(httpCodePost >= 200 && httpCodePost < 300){
+    String json_s = http.getString();
+    http.end();
+    json_s.remove(0,1);
+    json_s.remove(json_s.length() - 1, 1);
+    return JSON.parse(json_s);
+  }else{ return JSON.parse(""); http.end();} 
+}
 void setup() {
   //WiFi.mode(WIFI_NONE_SLEEP);
   Serial.begin(115200);
   if(DB) Serial.setDebugOutput(true);
   Serial.println();
+  EEPROM.begin(512); //Max at 4096
+  if(EEPROM.read(0) == 0){
+    for(byte i; i<strlen(FactoryID); i++){
+      EEPROM.write(i,FactoryID[i]);
+    }
+    WiFi.begin("IoTLab_401","iotvision@2020");
+    while(WiFi.status() != WL_CONNECTED){}
+    JSONVar FactoryJSON = getJSON(FACTORY_URL);
+    String ID = JSON.stringify(FactoryJSON["MaBoGa"]);
+  }
+  //GET control value
+  if (WiFi.status() == WL_CONNECTED){
+    http.begin(FACTORY_URL);
+    int httpCodePost = http.GET();
+  }
   WifiInit();
-  delay(5000);
+  delay(3000);
   pinMode(relayPin, OUTPUT);
   pinMode(buttonPin, INPUT);
   pinMode(waterPin1, INPUT_PULLUP);
